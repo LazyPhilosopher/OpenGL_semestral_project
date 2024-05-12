@@ -17,6 +17,9 @@
 #include "Camera.h"
 #include "Texture.h"
 #include "Light.h"
+#include "Material.h"
+
+#include "Model.h"
 
 const float toRadians = 3.14159265f / 180.0f;
 
@@ -28,7 +31,14 @@ Camera camera;
 Texture brickTexture;
 Texture dirtTexture;
 
-Light mainLight;
+Material shinyMaterial;
+Material dullMaterial;
+
+DirectionalLight mainLight;
+PointLight pointLights[MAX_POINT_LIGHTS];
+SpotLight spotLights[MAX_SPOT_LIGHTS];
+
+Model xwing, mountains;
 
 GLfloat deltaTime = 0.0f;
 GLfloat lastTime = 0.0f;
@@ -102,9 +112,49 @@ int main()
 	dirtTexture = Texture("Textures/dirt.png");
 	dirtTexture.LoadTexture();
 
-	mainLight = Light(1.0f, 1.0f, 1.0f, 0.5f);
+	shinyMaterial = Material(4.0f, 256);
+	dullMaterial = Material(0.3f, 4);
 
-	GLuint uniformProjection = 0, uniformModel = 0, uniformView = 0, uniformAmbientIntensity = 0, uniformAmbientColour = 0;
+	xwing = Model();
+	xwing.LoadModel("Models/x-wing.obj");
+
+	mountains = Model();
+	mountains.LoadModel("Models/mountains.obj");
+
+	mainLight = DirectionalLight(1.0f, 1.0f, 1.0f,
+		0.3f, 0.6f,
+		0.0f, 0.0f, -1.0f);
+
+	unsigned int pointLightCount = 0;
+	pointLights[0] = PointLight(0.0f, 0.0f, 1.0f,
+		0.0f, 0.1f,
+		0.0f, 0.0f, 0.0f,
+		0.3f, 0.2f, 0.1f);
+	pointLightCount++;
+	pointLights[1] = PointLight(0.0f, 1.0f, 0.0f,
+		0.0f, 0.1f,
+		-4.0f, 2.0f, 0.0f,
+		0.3f, 0.1f, 0.1f);
+	pointLightCount++;
+
+	unsigned int spotLightCount = 0;
+	spotLights[0] = SpotLight(1.0f, 1.0f, 1.0f,
+		0.0f, 2.0f,
+		0.0f, 0.0f, 0.0f,
+		0.0f, -1.0f, 0.0f,
+		1.0f, 0.0f, 0.0f,
+		20.0f);
+	spotLightCount++;
+	spotLights[1] = SpotLight(1.0f, 1.0f, 1.0f,
+		0.0f, 1.0f,
+		0.0f, -1.5f, 0.0f,
+		-100.0f, -1.0f, 0.0f,
+		1.0f, 0.0f, 0.0f,
+		20.0f);
+	spotLightCount++;
+
+	GLuint uniformProjection = 0, uniformModel = 0, uniformView = 0, uniformAmbientIntensity = 0, uniformAmbientColour = 0, uniformEyePosition = 0,
+		uniformSpecularIntensity = 0, uniformShininess = 0;
 	glm::mat4 projection = glm::perspective(glm::radians(45.0f), (GLfloat)mainWindow.getBufferWidth() / mainWindow.getBufferHeight(), 0.1f, 100.0f);
 
 
@@ -166,7 +216,16 @@ int main()
 		 uniformAmbientColour = shaderList[0].GetAmbientColourLocation();
 		 uniformAmbientIntensity = shaderList[0].GetAmbientIntensityLocation();
 
-		 mainLight.UseLight(uniformAmbientIntensity, uniformAmbientColour);
+		 uniformEyePosition = shaderList[0].GetEyePositionLocation();
+		 uniformSpecularIntensity = shaderList[0].GetSpecularIntensityLocation();
+		 uniformShininess = shaderList[0].GetShininessLocation();
+
+		 glm::vec3 lowerLight = camera.getCameraPosition();
+		 lowerLight.y -= 0.3f;
+
+		 shaderList[0].SetDirectionalLight(&mainLight);
+		 shaderList[0].SetPointLights(pointLights, pointLightCount);
+		 shaderList[0].SetSpotLights(spotLights, spotLightCount);
 		 
 		 // Diagonal + rotational translations
 		 glm::mat4 model = glm::mat4(1.0f);
@@ -196,6 +255,20 @@ int main()
 		 dirtTexture.UseTexture();
 		 meshList[1]->RenderMesh();
 		 
+		 model = glm::mat4(1.0f);
+		 model = glm::translate(model, glm::vec3(-7.0f, 10.0f, 0.0f));
+		 model = glm::scale(model, glm::vec3(0.006f, 0.006f, 0.006f));
+		 glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		 shinyMaterial.UseMaterial(uniformSpecularIntensity, uniformShininess);
+		 xwing.RenderModel();
+
+		 model = glm::mat4(1.0f);
+		 model = glm::translate(model, glm::vec3(-7.0f, -50.0f, 10.0f));
+		 model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+		 glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		 shinyMaterial.UseMaterial(uniformSpecularIntensity, uniformShininess);
+		 mountains.RenderModel();
+
 		 // Unuse shader program
 		 glUseProgram(0);
 		 
