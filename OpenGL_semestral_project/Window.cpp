@@ -7,8 +7,11 @@ Window::Window()
 
 	for (size_t i = 0; i < 1024; i++)
 	{
-		keys[i] = false;
+		keys[i] = 0;
 	}
+
+	xChange = 0.0f;
+	yChange = 0.0f;
 }
 
 Window::Window(GLint windowWidth, GLint windowHeight)
@@ -18,74 +21,70 @@ Window::Window(GLint windowWidth, GLint windowHeight)
 
 	for (size_t i = 0; i < 1024; i++)
 	{
-		keys[i] = false;
+		keys[i] = 0;
 	}
+
+	xChange = 0.0f;
+	yChange = 0.0f;
 }
 
-int Window::Initialize()
+int Window::Initialise()
 {
-	// Initialise GLFW
 	if (!glfwInit())
 	{
-		printf("GLFW initialisation failed!");
+		printf("Error Initialising GLFW");
 		glfwTerminate();
 		return 1;
 	}
 
-	// Setup GLFW window properties
+	// Setup GLFW Windows Properties
 	// OpenGL version
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	// Core Profile
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	// Allow Forward Compatbility
+	// Allow forward compatiblity
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
 	// Create the window
 	mainWindow = glfwCreateWindow(width, height, "Test Window", NULL, NULL);
 	if (!mainWindow)
 	{
-		printf("GLFW window creation failed!");
+		printf("Error creating GLFW window!");
 		glfwTerminate();
 		return 1;
 	}
 
-	// Get Buffer Size information
+	// Get buffer size information
 	glfwGetFramebufferSize(mainWindow, &bufferWidth, &bufferHeight);
 
-	// Set context for GLEW to use
+	// Set the current context
 	glfwMakeContextCurrent(mainWindow);
 
-	//Handle key and mouse input
+	// Handle Key + Mouse Input
 	createCallbacks();
-
-	//Hide mouse cursor
 	glfwSetInputMode(mainWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-	// Allow modern extension features
+	// Allow modern extension access
 	glewExperimental = GL_TRUE;
 
-	/* OpenGL itself provides a standard set of functionality,
-	but it also allows for extensions,
-	which are additional features that may not be supported by all OpenGL implementations or versions.
-	GLEW helps manage these extensions by providing
-	a consistent way to access their functionality across different platforms and OpenGL versions. */
-	if (glewInit() != GLEW_OK)
+	GLenum error = glewInit();
+	if (error != GLEW_OK)
 	{
-		printf("GLEW initialisation failed!");
+		printf("Error: %s", glewGetErrorString(error));
 		glfwDestroyWindow(mainWindow);
 		glfwTerminate();
 		return 1;
 	}
 
-	// Enable Z-test
 	glEnable(GL_DEPTH_TEST);
 
-	// Setup Viewport size
+	// Create Viewport
 	glViewport(0, 0, bufferWidth, bufferHeight);
 
-
 	glfwSetWindowUserPointer(mainWindow, this);
+
+	return 0;
 }
 
 void Window::createCallbacks()
@@ -122,12 +121,10 @@ void Window::handleKeys(GLFWwindow* window, int key, int code, int action, int m
 		if (action == GLFW_PRESS)
 		{
 			theWindow->keys[key] = true;
-			//printf("Pressed: %d\n", key);
 		}
 		else if (action == GLFW_RELEASE)
 		{
 			theWindow->keys[key] = false;
-			//printf("Released: %d\n", key);
 		}
 	}
 }
@@ -138,21 +135,20 @@ void Window::handleMouse(GLFWwindow* window, double xPos, double yPos)
 
 	if (theWindow->mouseFirstMoved)
 	{
-		theWindow->lastX = xPos;
-		theWindow->lastY = yPos;
+		theWindow->lastX = (GLfloat) (xPos);
+		theWindow->lastY = (GLfloat) (yPos);
 		theWindow->mouseFirstMoved = false;
 	}
 
-	theWindow->xChange = xPos - theWindow->lastX;
-	theWindow->yChange = theWindow->lastY - yPos;
+	theWindow->xChange = (GLfloat) (xPos - theWindow->lastX);
+	theWindow->yChange = (GLfloat) (theWindow->lastY - yPos);
 
-	theWindow->lastX = xPos;
-	theWindow->lastY = yPos;
-
-	//printf("x:%.6f, y:%.6f\n", theWindow->xChange, theWindow->yChange);
+	theWindow->lastX = (GLfloat) (xPos);
+	theWindow->lastY = (GLfloat) (yPos);
 }
 
 Window::~Window()
 {
-
+	glfwDestroyWindow(mainWindow);
+	glfwTerminate();
 }
