@@ -47,7 +47,7 @@ int Window::Initialise()
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
 	// Create the window
-	mainWindow = glfwCreateWindow(width, height, "Test Window", NULL, NULL);
+	mainWindow = glfwCreateWindow(width, height, "OpenGL Semestral Project | sergede1", NULL, NULL);
 	if (!mainWindow)
 	{
 		printf("Error creating GLFW window!");
